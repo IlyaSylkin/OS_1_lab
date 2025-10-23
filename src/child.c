@@ -1,26 +1,11 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <fcntl.h>
 #include <ctype.h>
+#include "src/process.h"
 
-#define MAX_NUMBERS 100
-#define BUFFER_SIZE 1024
-
-// Обертка для dup2
-void redirect_fd(int old_fd, int new_fd) {
-    if (dup2(old_fd, new_fd) == -1) {
-        perror("dup2");
-        exit(EXIT_FAILURE);
-    }
-    close(old_fd);
-}
 
 void float_to_string(float num, char *buffer) {
     int pos = 0;
     
-    // Обрабатываем отрицательные числа
+    // отрицательные числа
     if (num < 0) {
         buffer[pos++] = '-';
         num = -num;
@@ -32,7 +17,7 @@ void float_to_string(float num, char *buffer) {
     if (integer == 0) {
         buffer[pos++] = '0';
     } else {
-        // Конвертируем целую часть в строку
+        // Конвертируем в строку
         char digits[10];
         int digit_count = 0;
         int temp = integer;
@@ -42,7 +27,7 @@ void float_to_string(float num, char *buffer) {
             temp /= 10;
         }
         
-        // Записываем в обратном порядке
+        // в обратном порядке
         for (int i = digit_count - 1; i >= 0; i--) {
             buffer[pos++] = digits[i];
         }
@@ -51,9 +36,8 @@ void float_to_string(float num, char *buffer) {
     // Десятичная часть
     buffer[pos++] = '.';
     
-    int decimal = (int)((num - integer) * 1000 + 0.05); // Округление
-    
-    // Всегда 3 цифры после точки
+    int decimal = (int)((num - integer) * 1000 + 0.05); 
+
     buffer[pos++] = '0' + (decimal / 100);
     buffer[pos++] = '0' + (decimal % 100 / 10);
     buffer[pos++] = '0' + (decimal % 10);
@@ -89,7 +73,7 @@ void process_line(char *line) {
     }
     write(1, "\n", 1);
     
-    // Последовательное деление
+    // деление
     float current_result = numbers[0];
     char num_buf[20];
     
@@ -100,18 +84,15 @@ void process_line(char *line) {
     
     for (int i = 1; i < count; i++) {
         float divisor = numbers[i];
-        
-        // Проверка деления на 0
+ 
         if (divisor == 0.0f) {
             write(1, "ERROR: division by zero! Exiting.\n", 34);
             exit(EXIT_FAILURE);
         }
-        
-        // Выполняем деление
+
         float previous_result = current_result;
         current_result = current_result / divisor;
-        
-        // Выводим шаг деления
+ 
         write(1, "  ", 2);
         float_to_string(previous_result, num_buf);
         write(1, num_buf, strlen(num_buf));
@@ -135,10 +116,9 @@ int main(int argc, char *argv[]) {
     }
 
     const char *filename = argv[1];
-    char line[BUFFER_SIZE];
     char buffer[BUFFER_SIZE * 2];
     size_t buffer_len = 0;
-    size_t bytes_read;
+    int bytes_read;
     
     // Открываем файл для чтения
     int file_fd = open(filename, O_RDONLY);
@@ -150,7 +130,7 @@ int main(int argc, char *argv[]) {
     // Перенаправляем стандартный ввод на файл
     redirect_fd(file_fd, 0);
 
-    // Читаем и обрабатываем команды из файла с буферизацией
+    // Читаем 
     while ((bytes_read = read(0, buffer + buffer_len, BUFFER_SIZE - buffer_len - 1)) > 0) {
         buffer_len += bytes_read;
         buffer[buffer_len] = '\0';
@@ -159,7 +139,7 @@ int main(int argc, char *argv[]) {
         char *end;
         
         // Обрабатываем каждую строку
-        // первое вхождение '\n'
+        // strchr ищет первое вхождение '\n'
         while ((end = strchr(start, '\n')) != NULL) {
             *end = '\0';
             
@@ -171,15 +151,6 @@ int main(int argc, char *argv[]) {
             start = end + 1;
         }
         
-        // Переносим необработанный остаток в начало буфера
-        // if (start > buffer) {
-        //     buffer_len = buffer_len - (start - buffer);
-        //     memmove(buffer, start, buffer_len);
-        // } else if (buffer_len == BUFFER_SIZE - 1) {
-        //     // Буфер полон, но нет символа новой строки
-        //     write(2, "Error: line too long\n", 21);
-        //     buffer_len = 0;
-        // }
     }
     
     if (bytes_read == -1) {
