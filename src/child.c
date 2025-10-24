@@ -3,7 +3,7 @@
 void float_to_string(float num, char *buffer) {
     int pos = 0;
     
-    // отрицательные числа
+    // отр числа
     if (num < 0) {
         buffer[pos++] = '-';
         num = -num;
@@ -15,7 +15,7 @@ void float_to_string(float num, char *buffer) {
     if (integer == 0) {
         buffer[pos++] = '0';
     } else {
-        // Конвертируем в строку
+
         char digits[10];
         int digit_count = 0;
         int temp = integer;
@@ -60,7 +60,6 @@ void process_line(char *line) {
         return;
     }
     
-    // Выводим команду
     write(1, "Command: ", 9);
     for (int i = 0; i < count; i++) {
         char buffer[20];
@@ -107,12 +106,11 @@ void process_line(char *line) {
     write(1, "\n", 1);
 }
 
-int main(void) {  // ★ ИЗМЕНИЛОСЬ: убрали параметры ★
+int main(void) { 
     char buffer[BUFFER_SIZE * 2];
     size_t buffer_len = 0;
     int bytes_read;
     
-    // Читаем из stdin (который теперь указывает на файл)
     while ((bytes_read = read(0, buffer + buffer_len, BUFFER_SIZE - buffer_len - 1)) > 0) {
         buffer_len += bytes_read;
         buffer[buffer_len] = '\0';
@@ -120,7 +118,7 @@ int main(void) {  // ★ ИЗМЕНИЛОСЬ: убрали параметры �
         char *start = buffer;
         char *end;
         
-        // Обрабатываем каждую строку
+        // Обрабатываем каж строку
         while ((end = strchr(start, '\n')) != NULL) {
             *end = '\0';
             
