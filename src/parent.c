@@ -12,77 +12,81 @@ int main() {
 
     // Создаем pipe1
     if (pipe(pipe1) == -1) {
-        perror("pipe");
+        write(2, "pipe error\n", 11);
         exit(EXIT_FAILURE);
     }
 
-    // имя файла от пользователя
     write(1, "Enter filename: ", 16);
     bytes_read = read(0, filename, sizeof(filename) - 1);
     if (bytes_read <= 0) {
-        perror("read");
+        write(2, "read error\n", 11);
         exit(EXIT_FAILURE);
     }
     filename[bytes_read - 1] = '\0'; // Убираем \n
 
-    // форкаем
+    int file_fd = open(filename, O_RDONLY);
+    if (file_fd == -1) {
+        write(2, "Error: cannot open file\n", 24);
+        exit(EXIT_FAILURE);
+    }
+
     pid = fork();
     if (pid == -1) {
-        perror("fork");
+        write(2, "fork error\n", 11);
         exit(EXIT_FAILURE);
     }
 
     if (pid == 0) {
-        // ДОЧЕРНИЙ ПРОЦЕСС
-        close(pipe1[0]);  // Закрываем чтение 
+        close(pipe1[0]); 
         
         // Перенаправляем вывод в pipe1[1]
         redirect_fd(pipe1[1], 1);
         
-        // Запускаем дочернюю программу
-        execl("./child", "child", filename, NULL);
-        
-        perror("execl");
+        redirect_fd(file_fd, 0);
+
+        execl("./child", "child", NULL); 
+
+        write(2, "execl error\n", 12);
         exit(EXIT_FAILURE);
     } else {
-        // РОДИТЕЛЬСКИЙ ПРОЦЕСС
-        close(pipe1[1]);  // Закрываем запись 
+        close(pipe1[1]);  
+        close(file_fd); 
         
-        write(1, "Parent process started reading from pipe...\n", 44);
-        
-        // Читаем данные из pipe1
         while ((bytes_read = read(pipe1[0], buffer, BUFFER_SIZE - 1)) > 0) {
             write(1, buffer, bytes_read);
         }
         
         close(pipe1[0]);
         
-        // Ждем завершения дочернего процесса
+        // Ждем доч
         int status;
         waitpid(pid, &status, 0);
         
         if (WIFEXITED(status)) {
-        char msg[50] = "Child process exited with code: ";
-        char code_str[10];
-        
-        int exit_code = WEXITSTATUS(status);
+            char msg[50] = "Child process exited with code: ";
+            char code_str[10];
+            
+            int exit_code = WEXITSTATUS(status);
+            int msg_len = strlen(msg);  
 
-        int i = 0;
-        int temp = exit_code;
-        
-        do {
-            code_str[i++] = '0' + (temp % 10);
-            temp /= 10;
-        } while (temp > 0);
+            int i = 0;
+            int temp = exit_code;
+            
+            do {
+                code_str[i++] = '0' + (temp % 10);
+                temp /= 10;
+            } while (temp > 0);
 
-        for (int j = i - 1; j >= 0; j--) {
-            msg[strlen(msg)] = code_str[j];
+            // Добавляем цифры
+            for (int j = i - 1; j >= 0; j--) {
+                msg[msg_len++] = code_str[j];
+            }
+            
+            msg[msg_len++] = '\n';
+            msg[msg_len] = '\0'; 
+            
+            write(1, msg, msg_len);
         }
-        
-        msg[strlen(msg)] = '\n';
-        
-        write(1, msg, strlen(msg));
-    }
     }
 
     return 0;

@@ -1,6 +1,4 @@
-#include <ctype.h>
 #include "src/process.h"
-
 
 void float_to_string(float num, char *buffer) {
     int pos = 0;
@@ -49,11 +47,11 @@ void process_line(char *line) {
     float numbers[MAX_NUMBERS];
     int count = 0;
     
-    // Парсим числа из строки помещаем в массив nubmers
-    char *token = strtok(line, " "); // возвр указатель на начало текщей подстроки line
+    // Парсим числа из строки
+    char *token = strtok(line, " ");
     
     while (token != NULL && count < MAX_NUMBERS) {
-        numbers[count++] = atof(token); //строку в double
+        numbers[count++] = atof(token);
         token = strtok(NULL, " ");
     }
     
@@ -109,28 +107,12 @@ void process_line(char *line) {
     write(1, "\n", 1);
 }
 
-int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        write(2, "Usage: child <filename>\n", 24);
-        exit(EXIT_FAILURE);
-    }
-
-    const char *filename = argv[1];
+int main(void) {  // ★ ИЗМЕНИЛОСЬ: убрали параметры ★
     char buffer[BUFFER_SIZE * 2];
     size_t buffer_len = 0;
     int bytes_read;
     
-    // Открываем файл для чтения
-    int file_fd = open(filename, O_RDONLY);
-    if (file_fd == -1) {
-        write(2, "Error: cannot open file\n", 24);
-        exit(EXIT_FAILURE);
-    }
-    
-    // Перенаправляем стандартный ввод на файл
-    redirect_fd(file_fd, 0);
-
-    // Читаем 
+    // Читаем из stdin (который теперь указывает на файл)
     while ((bytes_read = read(0, buffer + buffer_len, BUFFER_SIZE - buffer_len - 1)) > 0) {
         buffer_len += bytes_read;
         buffer[buffer_len] = '\0';
@@ -139,22 +121,19 @@ int main(int argc, char *argv[]) {
         char *end;
         
         // Обрабатываем каждую строку
-        // strchr ищет первое вхождение '\n'
         while ((end = strchr(start, '\n')) != NULL) {
             *end = '\0';
             
-            // strlen работает до '\0'
             if (strlen(start) > 0) {
                 process_line(start);
             }
             
             start = end + 1;
         }
-        
     }
     
     if (bytes_read == -1) {
-        perror("read from file");
+        write(1, "read from file error\n", 21);
         exit(EXIT_FAILURE);
     }
     
